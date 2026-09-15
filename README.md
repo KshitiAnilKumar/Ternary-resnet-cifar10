@@ -12,9 +12,9 @@ The dataset is loaded directly from this archive. **No additional CIFAR-10 downl
 
 The data is split into:
 
-* Training: 45,000 images
-* Validation: 5,000 images
-* Official test set: 10,000 images
+- Training: 45,000 images
+- Validation: 5,000 images
+- Official test set: 10,000 images
 
 The official CIFAR-10 test set is kept untouched during training and model selection and is used only for final evaluation.
 
@@ -37,8 +37,6 @@ Ternary-resnet-cifar10/
     └── README.md
 ```
 
-Large experiment output archives are provided through **GitHub Releases** rather than stored directly in the repository.
-
 ## Notebooks
 
 ### 01 — Teacher ResNet-34
@@ -57,10 +55,10 @@ This provides the baseline for comparison with the ternary student.
 
 Trains a ResNet-18 student using:
 
-* Knowledge distillation from the trained ResNet-34 teacher
-* Ternary-weight quantization-aware training
-* Straight-Through Estimator (STE)
-* Latent FP32 weights during optimization
+- Knowledge distillation from the trained ResNet-34 teacher
+- Ternary-weight quantization-aware training
+- Straight-Through Estimator (STE)
+- Latent FP32 weights during optimization
 
 The internal convolutional weights are ternarized during the forward pass to:
 
@@ -72,21 +70,21 @@ The first convolutional layer (`conv1`), final fully connected layer (`fc`), and
 
 The primary knowledge-distillation configuration uses:
 
-* Temperature: `T = 4`
-* KD loss weight: `λ = 0.7`
+- Temperature: `T = 4`
+- KD loss weight: `λ = 0.7`
 
 ### 04 — Evaluation and Ablation
 
 Evaluates the trained models and compares:
 
-* Test accuracy
-* Parameter count
-* Model storage size
-* Ternary sparsity
-* Compression
-* Weight distributions
-* Knowledge-distillation temperature ablation
-* Compact checkpoint reload verification
+- Test accuracy
+- Parameter count
+- Model storage size
+- Ternary sparsity
+- Compression
+- Weight distributions
+- Knowledge-distillation temperature ablation
+- Compact checkpoint reload verification
 
 ## Training Pipeline
 
@@ -108,27 +106,27 @@ This forms the complete workflow from dataset loading and model training to fina
 
 Common training settings include:
 
-* Batch size: 128
-* Random seed: 42
-* Random crop with padding: 4
-* Random horizontal flip
-* Cutout: 8
-* CIFAR-10 normalization
-* SGD with momentum
-* Learning-rate warmup
-* Learning-rate scheduling
-* Early stopping
-* Maximum training epochs: 200
+- Batch size: 128
+- Random seed: 42
+- Random crop with padding: 4
+- Random horizontal flip
+- Cutout: 8
+- CIFAR-10 normalization
+- SGD with momentum
+- Learning-rate warmup
+- Learning-rate scheduling
+- Early stopping
+- Maximum training epochs: 200
 
 The exact configurations are implemented in the corresponding notebooks.
 
 ## Final Results
 
-| Model                    | Test Accuracy | Parameters | Model Storage |
-| ------------------------ | ------------: | ---------: | ------------: |
-| ResNet-34 Teacher        |        95.40% | 21,282,122 |   81.3128 MiB |
-| ResNet-18 FP32 Baseline  |        95.49% | 11,173,962 |   42.6984 MiB |
-| ResNet-18 Ternary KD/QAT |        95.32% | 11,173,962 |    2.8212 MiB |
+| Model | Test Accuracy | Parameters | Model Storage |
+|---|---:|---:|---:|
+| ResNet-34 Teacher | 95.40% | 21,282,122 | 81.3128 MiB |
+| ResNet-18 FP32 Baseline | 95.49% | 11,173,962 | 42.6984 MiB |
+| ResNet-18 Ternary KD/QAT | 95.32% | 11,173,962 | 2.8212 MiB |
 
 The final ternary ResNet-18 student achieves **95.32% test accuracy** while reducing the FP32 ResNet-18 model storage by approximately **15.135×**.
 
@@ -136,18 +134,20 @@ The ternary convolutional weights have approximately **45.5% sparsity**.
 
 The student is only **0.08 percentage points below the ResNet-34 teacher**.
 
-## Output Files
+## Outputs
 
-The experiment outputs are provided as ZIP archives:
+The notebooks generate the following experiment artifacts:
 
-* `Teacher_ResNet34_Outputs.zip`
-* `Baseline_ResNet18_Outputs.zip`
-* `Ternary_KD_QAT_Student_Outputs.zip`
-* `Evaluation_Ablation_Outputs.zip`
+- Trained model checkpoints
+- Training and validation logs
+- Accuracy and loss curves
+- Learning-rate curves
+- Evaluation results
+- Weight-distribution visualizations
+- Compression and sparsity analysis
+- Knowledge-distillation ablation results
 
-These archives contain the corresponding trained checkpoints, logs, plots, and evaluation artifacts.
-
-Because the archives are large, they are provided through **GitHub Releases** rather than stored directly in the repository.
+The final trained checkpoints and generated plots are retained with the experiment outputs.
 
 ## Requirements
 
@@ -155,14 +155,14 @@ The project is designed to run in a Kaggle GPU environment.
 
 Main dependencies:
 
-* Python 3.x
-* PyTorch
-* torchvision
-* NumPy
-* Pandas
-* Matplotlib
-* Pillow
-* tqdm
+- Python 3.x
+- PyTorch
+- torchvision
+- NumPy
+- Pandas
+- Matplotlib
+- Pillow
+- tqdm
 
 Install the dependencies with:
 
@@ -183,9 +183,3 @@ The experiments use a fixed random seed of:
 The CIFAR-10 dataset should be provided through the `cifar.zip` archive used in the Kaggle environment.
 
 The official CIFAR-10 test set is kept separate from training and validation and is used only for final evaluation.
-
-## Summary
-
-This project demonstrates that a ternary ResNet-18 student can retain near-FP32 classification performance on CIFAR-10 when trained using knowledge distillation and quantization-aware training.
-
-The final student achieves **95.32% test accuracy**, approximately **45.5% ternary-weight sparsity**, and about **15.135× lower model storage** than the FP32 ResNet-18 baseline, while remaining only **0.08 percentage points below the ResNet-34 teacher**.
