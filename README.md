@@ -37,7 +37,7 @@ Ternary-resnet-cifar10/
     └── README.md
 ```
 
-Large experiment-output archives are provided through **GitHub Releases** rather than stored directly in the repository.
+Large experiment output archives are provided through **GitHub Releases** rather than stored directly in the repository.
 
 ## Notebooks
 
@@ -49,15 +49,9 @@ The trained teacher is later frozen and used to provide soft predictions for kno
 
 ### 02 — FP32 ResNet-18 Baseline
 
-Trains a standard full-precision ResNet-18 from scratch.
+Trains a standard full-precision ResNet-18 from scratch without knowledge distillation or quantization.
 
-This model uses:
-
-* No knowledge distillation
-* No ternary quantization
-* Standard FP32 weights
-
-It provides the primary baseline for evaluating the ternary student.
+This provides the baseline for comparison with the ternary student.
 
 ### 03 — Ternary KD/QAT Student
 
@@ -76,40 +70,23 @@ The internal convolutional weights are ternarized during the forward pass to:
 
 The first convolutional layer (`conv1`), final fully connected layer (`fc`), and BatchNorm parameters remain in FP32.
 
-Latent FP32 weights are maintained during optimization, while ternary weights are used during the forward computation of the quantized convolutional layers.
-
 The primary knowledge-distillation configuration uses:
 
 * Temperature: `T = 4`
 * KD loss weight: `λ = 0.7`
 
-The training objective is:
-
-```text
-L = (1 - λ) × L_CE + λ × T² × L_KD
-```
-
-where:
-
-* `L_CE` is the cross-entropy loss using the ground-truth labels
-* `L_KD` is the knowledge-distillation loss between teacher and student soft predictions
-* `T` is the distillation temperature
-* `λ` controls the contribution of the distillation loss
-
 ### 04 — Evaluation and Ablation
 
-Performs final evaluation and analysis of the trained models.
-
-The notebook compares:
+Evaluates the trained models and compares:
 
 * Test accuracy
 * Parameter count
 * Model storage size
 * Ternary sparsity
-* Compression ratio
+* Compression
 * Weight distributions
 * Knowledge-distillation temperature ablation
-* Compact checkpoint reconstruction and reload verification
+* Compact checkpoint reload verification
 
 ## Training Pipeline
 
@@ -125,11 +102,11 @@ Run the notebooks in the following order:
 04_Evaluation_Ablation_Final_Analysis.ipynb
 ```
 
-This provides the complete workflow from dataset preparation and model training to final evaluation, compression analysis, and ablation experiments.
+This forms the complete workflow from dataset loading and model training to final evaluation and ablation analysis.
 
 ## Training Setup
 
-Common experiment settings include:
+Common training settings include:
 
 * Batch size: 128
 * Random seed: 42
@@ -137,84 +114,27 @@ Common experiment settings include:
 * Random horizontal flip
 * Cutout: 8
 * CIFAR-10 normalization
-* SGD optimizer with momentum
+* SGD with momentum
 * Learning-rate warmup
 * Learning-rate scheduling
 * Early stopping
 * Maximum training epochs: 200
 
-The exact configuration for each experiment is implemented in its corresponding notebook.
+The exact configurations are implemented in the corresponding notebooks.
 
 ## Final Results
 
-| Model                    | Test Accuracy | Parameters |      Model Storage |
-| ------------------------ | ------------: | ---------: | -----------------: |
-| ResNet-34 Teacher        |        95.40% | 21,282,122 |   81.3128 MiB FP32 |
-| ResNet-18 FP32 Baseline  |        95.49% | 11,173,962 |   42.6984 MiB FP32 |
-| ResNet-18 Ternary KD/QAT |        95.32% | 11,173,962 | 2.8212 MiB compact |
+| Model                    | Test Accuracy | Parameters | Model Storage |
+| ------------------------ | ------------: | ---------: | ------------: |
+| ResNet-34 Teacher        |        95.40% | 21,282,122 |   81.3128 MiB |
+| ResNet-18 FP32 Baseline  |        95.49% | 11,173,962 |   42.6984 MiB |
+| ResNet-18 Ternary KD/QAT |        95.32% | 11,173,962 |    2.8212 MiB |
 
-The final ternary ResNet-18 student achieves **95.32% test accuracy**.
-
-Compared with the FP32 ResNet-18 baseline:
-
-* FP32 baseline storage: **42.6984 MiB**
-* Compact ternary storage: **2.8212 MiB**
-* Storage compression: approximately **15.135×**
+The final ternary ResNet-18 student achieves **95.32% test accuracy** while reducing the FP32 ResNet-18 model storage by approximately **15.135×**.
 
 The ternary convolutional weights have approximately **45.5% sparsity**.
 
-Compared with the ResNet-34 teacher:
-
-* Teacher accuracy: **95.40%**
-* Ternary student accuracy: **95.32%**
-* Accuracy difference: **0.08 percentage points**
-
-The student therefore retains nearly all of the teacher's classification accuracy while substantially reducing model-storage requirements.
-
-## Knowledge-Distillation Ablation
-
-A temperature ablation is performed to study the effect of the knowledge-distillation temperature while keeping the KD loss weight fixed.
-
-| Temperature |   λ | Test Accuracy |
-| ----------- | --: | ------------: |
-| 4           | 0.7 |        95.32% |
-| 2           | 0.7 |        95.17% |
-
-The main experiment uses `T = 4` and `λ = 0.7`.
-
-In these experiments, `T = 4` produced slightly better final test accuracy than `T = 2`.
-
-## Ternary Quantization
-
-For the quantized convolutional layers, FP32 weights are mapped to three possible values during the forward pass:
-
-```text
-{-α, 0, +α}
-```
-
-A threshold determines whether each weight is mapped to the negative ternary value, zero, or the positive ternary value.
-
-The scaling factor `α` represents the magnitude used for the non-zero ternary weights.
-
-The Straight-Through Estimator allows gradients to propagate through the non-differentiable ternarization operation during backpropagation.
-
-This enables:
-
-* Ternary forward-pass weights
-* FP32 latent weights for optimization
-* End-to-end training using standard gradient-based optimization
-
-## Compact Model Storage
-
-The reported **2.8212 MiB** student model size refers to the exported **compact ternary representation**.
-
-It is not the size of the latent-FP32 QAT training checkpoint.
-
-During training, FP32 latent weights are maintained so that gradient-based optimization can update the network.
-
-For compact storage, the ternary model representation stores the ternary weight information more efficiently instead of storing every quantized convolutional weight as a standard 32-bit floating-point value.
-
-The evaluation notebook verifies that the compact representation can be reconstructed and reloaded correctly for inference.
+The student is only **0.08 percentage points below the ResNet-34 teacher**.
 
 ## Output Files
 
@@ -225,23 +145,15 @@ The experiment outputs are provided as ZIP archives:
 * `Ternary_KD_QAT_Student_Outputs.zip`
 * `Evaluation_Ablation_Outputs.zip`
 
-These archives contain the corresponding:
+These archives contain the corresponding trained checkpoints, logs, plots, and evaluation artifacts.
 
-* Trained checkpoints
-* Training logs
-* Accuracy and loss curves
-* Evaluation results
-* Plots
-* Compression artifacts
-* Ablation outputs
-
-Because these files are large, they are distributed through **GitHub Releases** instead of being committed directly to the repository.
+Because the archives are large, they are provided through **GitHub Releases** rather than stored directly in the repository.
 
 ## Requirements
 
 The project is designed to run in a Kaggle GPU environment.
 
-Main dependencies include:
+Main dependencies:
 
 * Python 3.x
 * PyTorch
@@ -260,12 +172,7 @@ pip install -r requirements.txt
 
 ## Reproducibility
 
-To reproduce the experiments:
-
-1. Add the CIFAR-10 archive to the Kaggle environment as `cifar.zip`.
-2. Run the notebooks in the specified order.
-3. Use the provided training configuration and random seed.
-4. Use the best saved checkpoint from each stage for the following experiments.
+Run the notebooks in the order listed above.
 
 The experiments use a fixed random seed of:
 
@@ -273,41 +180,12 @@ The experiments use a fixed random seed of:
 42
 ```
 
-The official CIFAR-10 test set is reserved exclusively for final evaluation.
+The CIFAR-10 dataset should be provided through the `cifar.zip` archive used in the Kaggle environment.
 
-## Important Implementation Details
-
-* The ResNet-34 teacher is trained in full precision.
-* The ResNet-18 baseline is trained independently in full precision.
-* The teacher is frozen during student knowledge-distillation training.
-* The student uses ternary internal convolutional weights during the forward pass.
-* The first convolutional layer, final fully connected layer, and BatchNorm parameters remain in FP32.
-* Latent FP32 weights are maintained during QAT for optimization.
-* The Straight-Through Estimator is used to propagate gradients through ternary quantization.
-* The validation set is used for model selection and early stopping.
-* The official CIFAR-10 test set is not used during training.
-* The reported compact model size refers to the exported ternary representation rather than the latent-FP32 training checkpoint.
-
-## Notes
-
-The reported compression represents a reduction in **model-storage requirements**.
-
-It should not be interpreted as an equivalent inference-speed improvement.
-
-Actual inference acceleration depends on hardware and software support for efficient ternary arithmetic. Standard GPU and CPU libraries may internally convert or process ternary values using conventional numerical representations, so storage compression does not automatically translate into proportional latency or throughput improvements.
+The official CIFAR-10 test set is kept separate from training and validation and is used only for final evaluation.
 
 ## Summary
 
-The project demonstrates that a ResNet-18 student can combine knowledge distillation with ternary-weight quantization-aware training while retaining high CIFAR-10 classification accuracy.
+This project demonstrates that a ternary ResNet-18 student can retain near-FP32 classification performance on CIFAR-10 when trained using knowledge distillation and quantization-aware training.
 
-The final student achieves:
-
-```text
-Test Accuracy:        95.32%
-Parameters:           11,173,962
-Compact Model Size:   2.8212 MiB
-Ternary Sparsity:     ~45.5%
-Storage Compression:  ~15.135×
-```
-
-Compared with the ResNet-34 teacher, the ternary student loses only **0.08 percentage points** of test accuracy while providing a substantially more compact model representation.
+The final student achieves **95.32% test accuracy**, approximately **45.5% ternary-weight sparsity**, and about **15.135× lower model storage** than the FP32 ResNet-18 baseline, while remaining only **0.08 percentage points below the ResNet-34 teacher**.
